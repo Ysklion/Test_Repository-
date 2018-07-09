@@ -32,6 +32,8 @@ public class PersonnelController {
     public Result getPersonnelById(@PathVariable int id){
         Personnel personnel = personnelService.selectPersonnelById(id);
         PersonOut personOut = PersonOut.transForm(personnel);
+        String s = personnel.toString();
+        System.out.println(s);
         return ResultGenerator.genSuccessResult(PersonOut.transTypeName(personOut));
     }
 
