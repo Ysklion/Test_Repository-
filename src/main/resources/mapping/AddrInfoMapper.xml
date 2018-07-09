@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xqoa.dao.AddrInfoDao">
+    <!-- AddrInfo的resultMap,column是给数据库列起的别名,它对应property类的属性-->
+    <resultMap id="result_AddrInfo_Map" type="com.xqoa.entity.AddrInfo">
+        <id column="id" property="id" />
+        <result column="areaId" property="areaId" />
+        <result column="pid" property="pid" />
+        <result column="cityId" property="cityId" />
+        <result column="provinceId" property="provinceId" />
+    </resultMap>
+
+	   <!-- Assist用于辅助工具类setRequires设置的条件,${req.require}表示列名,#{req.value}表示值它是防SQL注入的 -->
+    <sql id="Assist">
+        <where>
+            <foreach collection="require" item="req" separator=" ">
+                ${req.require} 
+                <if test="req.value != null"> #{req.value}</if> 
+                <if test="req.values != null">
+                    <foreach collection="req.values" item="val" separator=","> 
+                        #{val} 
+                    </foreach> 
+                </if> 
+                <if test="req.suffix != null"> ${req.suffix}</if> 
+            </foreach>
+        </where>
+    </sql>
+
+	   <!-- updateAssist用于更新数据的使用它拓展自Assist,用于辅助工具类setRequires设置的条件,${req.require}表示列名,#{req.value}表示值它是防SQL注入的 -->
+    <sql id="updateAssist">
+        <where>
+            <foreach collection="assist.require" item="req" separator=" ">
+                ${req.require} 
+                <if test="req.value != null"> #{req.value}</if> 
+                <if test="req.values != null">
+                    <foreach collection="req.values" item="val" separator=","> 
+                        #{val} 
+                    </foreach> 
+                </if> 
+                <if test="req.suffix != null"> ${req.suffix}</if> 
+            </foreach>
+        </where>
+    </sql>
+
+    <!-- 数据库中表名为:addrInfo的列名,as前是数据库的列明,as后是列的别名用于映射成实体类中的属性,需要注意的是别名必须与resultMap中的column别名一致 -->
+    <sql id="addrInfo_Column">
+        addrInfo.id as id
+        ,addrInfo.areaId as areaId
+        ,addrInfo.pid as pid
+        ,addrInfo.cityId as cityId
+        ,addrInfo.provinceId as provinceId
+    </sql>
+
+    <!--获得类名为:AddrInfo对应的数据库表的数据总行数 -->
+    <select id="getAddrInfoRowCount" parameterType="com.xqoa.common.Assist" resultType="java.lang.Long">
+        select count(id) from addrInfo
+        <if test="require!=null"><include refid="Assist" /></if>
+    </select>
+    <!-- 获得类名为:AddrInfo对应数据库中表的数据集合 -->
+    <select id="selectAddrInfo" parameterType="com.xqoa.common.Assist"  resultMap="result_AddrInfo_Map">
+        select  <if test="distinct !=null">${distinct}</if>
+        <choose>
+            <when test="resultColumn!=null">${resultColumn}</when>
+            <otherwise>
+        <include refid="addrInfo_Column" /> 
+            </otherwise>
+        </choose>
+        from addrInfo
+        <choose>
+            <when test="rowSize ==null">
+                <if test="require!=null">
+                    <include refid="Assist" />
+                </if>
+                <if test="order !=null">${order}</if>
+            </when>
+            <otherwise>
+                inner join
+                (
+                SELECT id as primary_key FROM addrInfo
+                <if test="require!=null">
+                    <include refid="Assist" />
+                </if>
+                <if test="order !=null">${order}</if>
+                <choose>
+                    <when test="startRow !=null and rowSize !=null">LIMIT #{startRow},#{rowSize} </when>
+                    <when test="rowSize !=null">LIMIT #{rowSize}</when>
+                 </choose>
+                 ) as tmp
+                 on tmp.primary_key=addrInfo.id
+            </otherwise>
+        </choose>
+    </select> 
+
+    <!-- 获得一个AddrInfo对象,以参数AddrInfo对象中不为空的属性作为条件进行查询-->
+    <select id="selectAddrInfoByObj" parameterType="com.xqoa.entity.AddrInfo" resultMap="result_AddrInfo_Map">
+        select 
+            <include refid="addrInfo_Column" /> 
+        from addrInfo
+        <where>
+            <if test="provinceId != null "> and addrInfo.provinceId = #{provinceId}</if>
+            <if test="cityId != null "> and addrInfo.cityId = #{cityId}</if>
+            <if test="pid != null "> and addrInfo.pid = #{pid}</if>
+            <if test="areaId != null "> and addrInfo.areaId = #{areaId}</if>
+            <if test="id != null "> and addrInfo.id = #{id}</if>
+        </where>
+    </select> 
+
+    <!-- 通过AddrInfo的id获得对应数据库中表的数据对象-->
+    <select id="selectAddrInfoById" parameterType="java.lang.Integer" resultMap="result_AddrInfo_Map">
+        select 
+            <include refid="addrInfo_Column" /> 
+        from addrInfo
+        where addrInfo.id = #{id}
+    </select> 
+
+    <!-- 将AddrInfo插入到对应数据库的表中,包括属性值为null的数据-->
+
+    <insert id="insertAddrInfo" parameterType="com.xqoa.entity.AddrInfo">
+        insert into addrInfo(id,areaId,pid,cityId,provinceId) 
+        values(#{id},#{areaId},#{pid},#{cityId},#{provinceId})
+    </insert>
+
+    <!-- 将AddrInfo中属性值不为null的数据,插入到对应数据库的表中-->
+    <insert id="insertNonEmptyAddrInfo" parameterType="com.xqoa.entity.AddrInfo">
+        insert into addrInfo
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">id,</if>
+            <if test="areaId != null">areaId,</if>
+            <if test="pid != null">pid,</if>
+            <if test="cityId != null">cityId,</if>
+            <if test="provinceId != null">provinceId,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null"> #{id},</if>
+            <if test="areaId != null"> #{areaId},</if>
+            <if test="pid != null"> #{pid},</if>
+            <if test="cityId != null"> #{cityId},</if>
+            <if test="provinceId != null"> #{provinceId},</if>
+        </trim>
+    </insert>
+
+    <!-- 将AddrInfo批量插入到对应数据库的表中-->
+    <insert id="insertAddrInfoByBatch" parameterType="ArrayList">
+        insert into addrInfo(id,areaId,pid,cityId,provinceId) values
+        <foreach collection="list" item="item" index="index" separator="," >
+            (#{item.id},#{item.areaId},#{item.pid},#{item.cityId},#{item.provinceId})
+        </foreach>
+    </insert>
+
+    <!-- 通过AddrInfo的id将数据库表中对应的数据删除-->
+    <delete id="deleteAddrInfoById" parameterType="java.lang.Integer">
+        delete from addrInfo
+        where id = #{id}
+    </delete>
+
+    <!-- 通过辅助工具Assist中的条件将AddrInfo对应的数据库表的数据删除-->
+    <delete id="deleteAddrInfo" parameterType="com.xqoa.common.Assist">
+        delete from addrInfo
+        <if test="require!=null"><include refid="Assist" /></if>
+    </delete>
+
+    <!-- 通过AddrInfo的id将AddrInfo的数据更新到数据库中对应的表,包括值null的数据-->
+    <update id="updateAddrInfoById" parameterType="com.xqoa.entity.AddrInfo">
+        update addrInfo set
+            areaId=#{areaId}
+            ,pid=#{pid}
+            ,cityId=#{cityId}
+            ,provinceId=#{provinceId}
+        where id=#{id}
+    </update>
+
+    <!-- 通过AddrInfo的id将AddrInfo中属性值不为null的数据更新到数据库对应的表中-->
+    <update id="updateNonEmptyAddrInfoById" parameterType="com.xqoa.entity.AddrInfo">
+        update addrInfo
+        <set>
+            <if test="areaId != null">
+                areaId=#{areaId},
+            </if>
+            <if test="pid != null">
+                pid=#{pid},
+            </if>
+            <if test="cityId != null">
+                cityId=#{cityId},
+            </if>
+            <if test="provinceId != null">
+                provinceId=#{provinceId},
+            </if>
+        </set>
+        where id=#{id}
+    </update>
+
+    <!-- 通过辅助工具Assist中的条件将AddrInfo中的数据更新到数据库对应的表中,包括值为null的数据-->
+    <update id="updateAddrInfo" parameterType="map">
+        update addrInfo
+        <set>
+                id=#{enti.id},
+                areaId=#{enti.areaId},
+                pid=#{enti.pid},
+                cityId=#{enti.cityId},
+                provinceId=#{enti.provinceId},
+        </set>
+        <if test="assist.require!=null"><include refid="updateAssist" /></if>
+    </update>
+
+    <!-- 通过辅助工具Assist中的条件将AddrInfo中属性值不为null的数据更新到数据库对应的表中-->
+    <update id="updateNonEmptyAddrInfo" parameterType="map">
+        update addrInfo
+        <set>
+            <if test="enti.id != null">
+                id=#{enti.id},
+            </if>
+            <if test="enti.areaId != null">
+                areaId=#{enti.areaId},
+            </if>
+            <if test="enti.pid != null">
+                pid=#{enti.pid},
+            </if>
+            <if test="enti.cityId != null">
+                cityId=#{enti.cityId},
+            </if>
+            <if test="enti.provinceId != null">
+                provinceId=#{enti.provinceId},
+            </if>
+        </set>
+        <if test="assist.require!=null"><include refid="updateAssist" /></if>
+    </update>
+
+</mapper>

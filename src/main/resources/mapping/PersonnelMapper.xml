@@ -1,0 +1,344 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xqoa.dao.PersonnelDao">
+    <!-- Personnel的resultMap,column是给数据库列起的别名,它对应property类的属性-->
+    <resultMap id="result_Personnel_Map" type="com.xqoa.entity.Personnel">
+        <id column="id" property="id" />
+        <result column="education" property="education" />
+        <result column="idCard" property="idCard" />
+        <result column="sex" property="sex" />
+        <result column="origin" property="origin" />
+        <result column="workRemake" property="workRemake" />
+        <result column="phone" property="phone" />
+        <result column="createTime" property="createTime" />
+        <result column="brith" property="brith" />
+        <result column="name" property="name" />
+        <result column="addr" property="addr" />
+        <result column="maritalStatus" property="maritalStatus" />
+        <result column="height" property="height" />
+    </resultMap>
+
+	   <!-- Assist用于辅助工具类setRequires设置的条件,${req.require}表示列名,#{req.value}表示值它是防SQL注入的 -->
+    <sql id="Assist">
+        <where>
+            <foreach collection="require" item="req" separator=" ">
+                ${req.require} 
+                <if test="req.value != null"> #{req.value}</if> 
+                <if test="req.values != null">
+                    <foreach collection="req.values" item="val" separator=","> 
+                        #{val} 
+                    </foreach> 
+                </if> 
+                <if test="req.suffix != null"> ${req.suffix}</if> 
+            </foreach>
+        </where>
+    </sql>
+
+	   <!-- updateAssist用于更新数据的使用它拓展自Assist,用于辅助工具类setRequires设置的条件,${req.require}表示列名,#{req.value}表示值它是防SQL注入的 -->
+    <sql id="updateAssist">
+        <where>
+            <foreach collection="assist.require" item="req" separator=" ">
+                ${req.require} 
+                <if test="req.value != null"> #{req.value}</if> 
+                <if test="req.values != null">
+                    <foreach collection="req.values" item="val" separator=","> 
+                        #{val} 
+                    </foreach> 
+                </if> 
+                <if test="req.suffix != null"> ${req.suffix}</if> 
+            </foreach>
+        </where>
+    </sql>
+
+    <!-- 数据库中表名为:personnel的列名,as前是数据库的列明,as后是列的别名用于映射成实体类中的属性,需要注意的是别名必须与resultMap中的column别名一致 -->
+    <sql id="personnel_Column">
+        personnel.id as id
+        ,personnel.education as education
+        ,personnel.idCard as idCard
+        ,personnel.sex as sex
+        ,personnel.origin as origin
+        ,personnel.workRemake as workRemake
+        ,personnel.phone as phone
+        ,personnel.createTime as createTime
+        ,personnel.brith as brith
+        ,personnel.name as name
+        ,personnel.addr as addr
+        ,personnel.maritalStatus as maritalStatus
+        ,personnel.height as height
+    </sql>
+    <select id="selectLike" resultMap="result_Personnel_Map" >
+       SELECT <include refid="personnel_Column"/> FROM personnel WHERE name LIKE "%"#{queryName}"%";
+    </select>
+    <select id="getByIds"  resultMap="result_Personnel_Map" >
+        select  <include refid="personnel_Column" />
+        from personnel
+        where id in
+        <foreach collection="list" item="i" index="index"
+                 open="(" separator="," close=")" >
+            #{i}
+        </foreach>
+    </select>
+    <!-- SELECT * FROM personnel p WHERE p.id in(SELECT pid FROM addrInfo a WHERE a.provinceId = "360000") -->
+    <!--获得类名为:Personnel对应的数据库表的数据总行数 -->
+    <select id="getPersonnelRowCount" parameterType="com.xqoa.common.Assist" resultType="java.lang.Long">
+        select count(id) from personnel
+        <if test="require!=null"><include refid="Assist" /></if>
+    </select>
+    <!-- 获得类名为:Personnel对应数据库中表的数据集合 -->
+    <select id="selectPersonnel" parameterType="com.xqoa.common.Assist"  resultMap="result_Personnel_Map">
+        select  <if test="distinct !=null">${distinct}</if>
+        <choose>
+            <when test="resultColumn!=null">${resultColumn}</when>
+            <otherwise>
+        <include refid="personnel_Column" />
+            </otherwise>
+        </choose>
+        from personnel
+        <choose>
+            <when test="rowSize ==null">
+                <if test="require!=null">
+                    <include refid="Assist" />
+                </if>
+                <if test="order !=null">${order}</if>
+            </when>
+            <otherwise>
+                inner join
+                (
+                SELECT id as primary_key FROM personnel
+                <if test="require!=null">
+                    <include refid="Assist" />
+                </if>
+                <if test="order !=null">${order}</if>
+                <choose>
+                    <when test="startRow !=null and rowSize !=null">LIMIT #{startRow},#{rowSize} </when>
+                    <when test="rowSize !=null">LIMIT #{rowSize}</when>
+                 </choose>
+                 ) as tmp
+                 on tmp.primary_key=personnel.id
+            </otherwise>
+        </choose>
+    </select> 
+
+    <!-- 获得一个Personnel对象,以参数Personnel对象中不为空的属性作为条件进行查询-->
+    <select id="selectPersonnelByObj" parameterType="com.xqoa.entity.Personnel" resultMap="result_Personnel_Map">
+        select 
+            <include refid="personnel_Column" /> 
+        from personnel
+        <where>
+            <if test="height != null "> and personnel.height = #{height}</if>
+            <if test="maritalStatus != null "> and personnel.maritalStatus = #{maritalStatus}</if>
+            <if test="addr != null "> and personnel.addr = #{addr}</if>
+            <if test="name != null "> and personnel.name = #{name}</if>
+            <if test="brith != null "> and personnel.brith = #{brith}</if>
+            <if test="createTime != null "> and personnel.createTime = #{createTime}</if>
+            <if test="phone != null "> and personnel.phone = #{phone}</if>
+            <if test="workRemake != null "> and personnel.workRemake = #{workRemake}</if>
+            <if test="origin != null "> and personnel.origin = #{origin}</if>
+            <if test="sex != null "> and personnel.sex = #{sex}</if>
+            <if test="idCard != null "> and personnel.idCard = #{idCard}</if>
+            <if test="education != null "> and personnel.education = #{education}</if>
+            <if test="id != null "> and personnel.id = #{id}</if>
+        </where>
+    </select> 
+
+    <!-- 通过Personnel的id获得对应数据库中表的数据对象-->
+    <select id="selectPersonnelById" parameterType="java.lang.Integer" resultMap="result_Personnel_Map">
+        select 
+            <include refid="personnel_Column" /> 
+        from personnel
+        where personnel.id = #{id}
+    </select> 
+
+    <!-- 将Personnel插入到对应数据库的表中,包括属性值为null的数据-->
+
+    <insert id="insertPersonnel" parameterType="com.xqoa.entity.Personnel" useGeneratedKeys="true" keyProperty="id">
+        insert into personnel(id,education,idCard,sex,origin,workRemake,phone,createTime,brith,name,addr,maritalStatus,height) 
+        values(#{id},#{education},#{idCard},#{sex},#{origin},#{workRemake},#{phone},#{createTime},#{brith},#{name},#{addr},#{maritalStatus},#{height})
+    </insert>
+
+    <!-- 将Personnel中属性值不为null的数据,插入到对应数据库的表中-->
+    <insert id="insertNonEmptyPersonnel" parameterType="com.xqoa.entity.Personnel"  useGeneratedKeys="true" keyProperty="id">
+        insert into personnel
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">id,</if>
+            <if test="education != null">education,</if>
+            <if test="idCard != null">idCard,</if>
+            <if test="sex != null">sex,</if>
+            <if test="origin != null">origin,</if>
+            <if test="workRemake != null">workRemake,</if>
+            <if test="phone != null">phone,</if>
+            <if test="createTime != null">createTime,</if>
+            <if test="brith != null">brith,</if>
+            <if test="name != null">name,</if>
+            <if test="addr != null">addr,</if>
+            <if test="maritalStatus != null">maritalStatus,</if>
+            <if test="height != null">height,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null"> #{id},</if>
+            <if test="education != null"> #{education},</if>
+            <if test="idCard != null"> #{idCard},</if>
+            <if test="sex != null"> #{sex},</if>
+            <if test="origin != null"> #{origin},</if>
+            <if test="workRemake != null"> #{workRemake},</if>
+            <if test="phone != null"> #{phone},</if>
+            <if test="createTime != null"> #{createTime},</if>
+            <if test="brith != null"> #{brith},</if>
+            <if test="name != null"> #{name},</if>
+            <if test="addr != null"> #{addr},</if>
+            <if test="maritalStatus != null"> #{maritalStatus},</if>
+            <if test="height != null"> #{height},</if>
+        </trim>
+    </insert>
+
+    <!-- 将Personnel批量插入到对应数据库的表中-->
+    <insert id="insertPersonnelByBatch" parameterType="ArrayList">
+        insert into personnel(id,education,idCard,sex,origin,workRemake,phone,createTime,brith,name,addr,maritalStatus,height) values
+        <foreach collection="list" item="item" index="index" separator="," >
+            (#{item.id},#{item.education},#{item.idCard},#{item.sex},#{item.origin},#{item.workRemake},#{item.phone},#{item.createTime},#{item.brith},#{item.name},#{item.addr},#{item.maritalStatus},#{item.height})
+        </foreach>
+    </insert>
+
+    <!-- 通过Personnel的id将数据库表中对应的数据删除-->
+    <delete id="deletePersonnelById" parameterType="java.lang.Integer">
+        delete from personnel
+        where id = #{id}
+    </delete>
+
+    <!-- 通过辅助工具Assist中的条件将Personnel对应的数据库表的数据删除-->
+    <delete id="deletePersonnel" parameterType="com.xqoa.common.Assist">
+        delete from personnel
+        <if test="require!=null"><include refid="Assist" /></if>
+    </delete>
+
+    <!-- 通过Personnel的id将Personnel的数据更新到数据库中对应的表,包括值null的数据-->
+    <update id="updatePersonnelById" parameterType="com.xqoa.entity.Personnel">
+        update personnel set
+            education=#{education}
+            ,idCard=#{idCard}
+            ,sex=#{sex}
+            ,origin=#{origin}
+            ,workRemake=#{workRemake}
+            ,phone=#{phone}
+            ,createTime=#{createTime}
+            ,brith=#{brith}
+            ,name=#{name}
+            ,addr=#{addr}
+            ,maritalStatus=#{maritalStatus}
+            ,height=#{height}
+        where id=#{id}
+    </update>
+
+    <!-- 通过Personnel的id将Personnel中属性值不为null的数据更新到数据库对应的表中-->
+    <update id="updateNonEmptyPersonnelById" parameterType="com.xqoa.entity.Personnel">
+        update personnel
+        <set>
+            <if test="education != null">
+                education=#{education},
+            </if>
+            <if test="idCard != null">
+                idCard=#{idCard},
+            </if>
+            <if test="sex != null">
+                sex=#{sex},
+            </if>
+            <if test="origin != null">
+                origin=#{origin},
+            </if>
+            <if test="workRemake != null">
+                workRemake=#{workRemake},
+            </if>
+            <if test="phone != null">
+                phone=#{phone},
+            </if>
+            <if test="createTime != null">
+                createTime=#{createTime},
+            </if>
+            <if test="brith != null">
+                brith=#{brith},
+            </if>
+            <if test="name != null">
+                name=#{name},
+            </if>
+            <if test="addr != null">
+                addr=#{addr},
+            </if>
+            <if test="maritalStatus != null">
+                maritalStatus=#{maritalStatus},
+            </if>
+            <if test="height != null">
+                height=#{height},
+            </if>
+        </set>
+        where id=#{id}
+    </update>
+
+    <!-- 通过辅助工具Assist中的条件将Personnel中的数据更新到数据库对应的表中,包括值为null的数据-->
+    <update id="updatePersonnel" parameterType="map">
+        update personnel
+        <set>
+                id=#{enti.id},
+                education=#{enti.education},
+                idCard=#{enti.idCard},
+                sex=#{enti.sex},
+                origin=#{enti.origin},
+                workRemake=#{enti.workRemake},
+                phone=#{enti.phone},
+                createTime=#{enti.createTime},
+                brith=#{enti.brith},
+                name=#{enti.name},
+                addr=#{enti.addr},
+                maritalStatus=#{enti.maritalStatus},
+                height=#{enti.height},
+        </set>
+        <if test="assist.require!=null"><include refid="updateAssist" /></if>
+    </update>
+
+    <!-- 通过辅助工具Assist中的条件将Personnel中属性值不为null的数据更新到数据库对应的表中-->
+    <update id="updateNonEmptyPersonnel" parameterType="map">
+        update personnel
+        <set>
+            <if test="enti.id != null">
+                id=#{enti.id},
+            </if>
+            <if test="enti.education != null">
+                education=#{enti.education},
+            </if>
+            <if test="enti.idCard != null">
+                idCard=#{enti.idCard},
+            </if>
+            <if test="enti.sex != null">
+                sex=#{enti.sex},
+            </if>
+            <if test="enti.origin != null">
+                origin=#{enti.origin},
+            </if>
+            <if test="enti.workRemake != null">
+                workRemake=#{enti.workRemake},
+            </if>
+            <if test="enti.phone != null">
+                phone=#{enti.phone},
+            </if>
+            <if test="enti.createTime != null">
+                createTime=#{enti.createTime},
+            </if>
+            <if test="enti.brith != null">
+                brith=#{enti.brith},
+            </if>
+            <if test="enti.name != null">
+                name=#{enti.name},
+            </if>
+            <if test="enti.addr != null">
+                addr=#{enti.addr},
+            </if>
+            <if test="enti.maritalStatus != null">
+                maritalStatus=#{enti.maritalStatus},
+            </if>
+            <if test="enti.height != null">
+                height=#{enti.height},
+            </if>
+        </set>
+        <if test="assist.require!=null"><include refid="updateAssist" /></if>
+    </update>
+
+</mapper>

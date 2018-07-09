@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xqoa.dao.CityDao">
+    <!-- City的resultMap,column是给数据库列起的别名,它对应property类的属性-->
+    <resultMap id="result_City_Map" type="com.xqoa.entity.City">
+        <id column="id" property="id" />
+        <result column="city" property="city" />
+        <result column="father" property="father" />
+        <result column="cityID" property="cityID" />
+    </resultMap>
+
+	   <!-- Assist用于辅助工具类setRequires设置的条件,${req.require}表示列名,#{req.value}表示值它是防SQL注入的 -->
+    <sql id="Assist">
+        <where>
+            <foreach collection="require" item="req" separator=" ">
+                ${req.require} 
+                <if test="req.value != null"> #{req.value}</if> 
+                <if test="req.values != null">
+                    <foreach collection="req.values" item="val" separator=","> 
+                        #{val} 
+                    </foreach> 
+                </if> 
+                <if test="req.suffix != null"> ${req.suffix}</if> 
+            </foreach>
+        </where>
+    </sql>
+
+	   <!-- updateAssist用于更新数据的使用它拓展自Assist,用于辅助工具类setRequires设置的条件,${req.require}表示列名,#{req.value}表示值它是防SQL注入的 -->
+    <sql id="updateAssist">
+        <where>
+            <foreach collection="assist.require" item="req" separator=" ">
+                ${req.require} 
+                <if test="req.value != null"> #{req.value}</if> 
+                <if test="req.values != null">
+                    <foreach collection="req.values" item="val" separator=","> 
+                        #{val} 
+                    </foreach> 
+                </if> 
+                <if test="req.suffix != null"> ${req.suffix}</if> 
+            </foreach>
+        </where>
+    </sql>
+
+    <!-- 数据库中表名为:city的列名,as前是数据库的列明,as后是列的别名用于映射成实体类中的属性,需要注意的是别名必须与resultMap中的column别名一致 -->
+    <sql id="city_Column">
+        city.id as id
+        ,city.city as city
+        ,city.father as father
+        ,city.cityID as cityID
+    </sql>
+
+    <!--获得类名为:City对应的数据库表的数据总行数 -->
+    <select id="getCityRowCount" parameterType="com.xqoa.common.Assist" resultType="java.lang.Long">
+        select count(id) from city
+        <if test="require!=null"><include refid="Assist" /></if>
+    </select>
+    <!-- 获得类名为:City对应数据库中表的数据集合 -->
+    <select id="selectCity" parameterType="com.xqoa.common.Assist"  resultMap="result_City_Map">
+        select  <if test="distinct !=null">${distinct}</if>
+        <choose>
+            <when test="resultColumn!=null">${resultColumn}</when>
+            <otherwise>
+        <include refid="city_Column" /> 
+            </otherwise>
+        </choose>
+        from city
+        <choose>
+            <when test="rowSize ==null">
+                <if test="require!=null">
+                    <include refid="Assist" />
+                </if>
+                <if test="order !=null">${order}</if>
+            </when>
+            <otherwise>
+                inner join
+                (
+                SELECT id as primary_key FROM city
+                <if test="require!=null">
+                    <include refid="Assist" />
+                </if>
+                <if test="order !=null">${order}</if>
+                <choose>
+                    <when test="startRow !=null and rowSize !=null">LIMIT #{startRow},#{rowSize} </when>
+                    <when test="rowSize !=null">LIMIT #{rowSize}</when>
+                 </choose>
+                 ) as tmp
+                 on tmp.primary_key=city.id
+            </otherwise>
+        </choose>
+    </select> 
+
+    <!-- 获得一个City对象,以参数City对象中不为空的属性作为条件进行查询-->
+    <select id="selectCityByObj" parameterType="com.xqoa.entity.City" resultMap="result_City_Map">
+        select 
+            <include refid="city_Column" /> 
+        from city
+        <where>
+            <if test="cityID != null "> and city.cityID = #{cityID}</if>
+            <if test="father != null "> and city.father = #{father}</if>
+            <if test="city != null "> and city.city = #{city}</if>
+            <if test="id != null "> and city.id = #{id}</if>
+        </where>
+    </select> 
+
+    <!-- 通过City的id获得对应数据库中表的数据对象-->
+    <select id="selectCityById" parameterType="java.lang.Integer" resultMap="result_City_Map">
+        select 
+            <include refid="city_Column" /> 
+        from city
+        where city.id = #{id}
+    </select> 
+
+    <!-- 将City插入到对应数据库的表中,包括属性值为null的数据-->
+
+    <insert id="insertCity" parameterType="com.xqoa.entity.City">
+        insert into city(id,city,father,cityID) 
+        values(#{id},#{city},#{father},#{cityID})
+    </insert>
+
+    <!-- 将City中属性值不为null的数据,插入到对应数据库的表中-->
+    <insert id="insertNonEmptyCity" parameterType="com.xqoa.entity.City">
+        insert into city
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">id,</if>
+            <if test="city != null">city,</if>
+            <if test="father != null">father,</if>
+            <if test="cityID != null">cityID,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null"> #{id},</if>
+            <if test="city != null"> #{city},</if>
+            <if test="father != null"> #{father},</if>
+            <if test="cityID != null"> #{cityID},</if>
+        </trim>
+    </insert>
+
+    <!-- 将City批量插入到对应数据库的表中-->
+    <insert id="insertCityByBatch" parameterType="ArrayList">
+        insert into city(id,city,father,cityID) values
+        <foreach collection="list" item="item" index="index" separator="," >
+            (#{item.id},#{item.city},#{item.father},#{item.cityID})
+        </foreach>
+    </insert>
+
+    <!-- 通过City的id将数据库表中对应的数据删除-->
+    <delete id="deleteCityById" parameterType="java.lang.Integer">
+        delete from city
+        where id = #{id}
+    </delete>
+
+    <!-- 通过辅助工具Assist中的条件将City对应的数据库表的数据删除-->
+    <delete id="deleteCity" parameterType="com.xqoa.common.Assist">
+        delete from city
+        <if test="require!=null"><include refid="Assist" /></if>
+    </delete>
+
+    <!-- 通过City的id将City的数据更新到数据库中对应的表,包括值null的数据-->
+    <update id="updateCityById" parameterType="com.xqoa.entity.City">
+        update city set
+            city=#{city}
+            ,father=#{father}
+            ,cityID=#{cityID}
+        where id=#{id}
+    </update>
+
+    <!-- 通过City的id将City中属性值不为null的数据更新到数据库对应的表中-->
+    <update id="updateNonEmptyCityById" parameterType="com.xqoa.entity.City">
+        update city
+        <set>
+            <if test="city != null">
+                city=#{city},
+            </if>
+            <if test="father != null">
+                father=#{father},
+            </if>
+            <if test="cityID != null">
+                cityID=#{cityID},
+            </if>
+        </set>
+        where id=#{id}
+    </update>
+
+    <!-- 通过辅助工具Assist中的条件将City中的数据更新到数据库对应的表中,包括值为null的数据-->
+    <update id="updateCity" parameterType="map">
+        update city
+        <set>
+                id=#{enti.id},
+                city=#{enti.city},
+                father=#{enti.father},
+                cityID=#{enti.cityID},
+        </set>
+        <if test="assist.require!=null"><include refid="updateAssist" /></if>
+    </update>
+
+    <!-- 通过辅助工具Assist中的条件将City中属性值不为null的数据更新到数据库对应的表中-->
+    <update id="updateNonEmptyCity" parameterType="map">
+        update city
+        <set>
+            <if test="enti.id != null">
+                id=#{enti.id},
+            </if>
+            <if test="enti.city != null">
+                city=#{enti.city},
+            </if>
+            <if test="enti.father != null">
+                father=#{enti.father},
+            </if>
+            <if test="enti.cityID != null">
+                cityID=#{enti.cityID},
+            </if>
+        </set>
+        <if test="assist.require!=null"><include refid="updateAssist" /></if>
+    </update>
+
+</mapper>
